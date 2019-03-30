@@ -1,0 +1,91 @@
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+        <meta charset="UTF-8">
+        <title>Plaid Quickstart Example</title>
+        <link rel="stylesheet" href="https://threads.plaid.com/threads.css">
+        
+        <link rel="stylesheet" type="text/css" href="style.css">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        </head>
+        <body>
+          <main class="main">  
+                <div id="container" class="initial-view">
+                  <button id="link-btn" class="button button--is-primary">Donate</button>
+                </div>
+
+                <div id="end" style="display:none">Thank you for donating!</div>
+          </main>
+        
+          <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.3/jquery.min.js"></script>
+          <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
+          <script>
+          (function($) {
+
+            
+            function ajaxCall(){
+                console.log("I am in AJAX")
+                $.ajax({
+                    type: "GET",
+                    url: "http://localhost:8080/transactions",
+                    success: function(){ 
+                        console.log("Successful ajax request")
+                    }
+                });
+            }
+
+
+            var products = '<%= PLAID_PRODUCTS %>'.split(',');
+            if (products.includes('assets')) {
+              $('#assets').show();
+            }        
+            var handler = Plaid.create({
+              apiVersion: 'v2',
+              clientName: 'Plaid Quickstart',
+              env: '<%= PLAID_ENV %>',
+              product: products,
+              key: '<%= PLAID_PUBLIC_KEY %>',
+              // webhook: 'https://your-domain.tld/plaid-webhook',
+              onSuccess: function(public_token) {
+                $.post('/get_access_token', {
+                  public_token: public_token
+                }, function(data) {
+                  $('#container').fadeOut('fast', function() {
+                    $("#end").css("display", "block");
+                    $('#intro').hide();
+                    $('#app, #steps').fadeIn('slow');
+                    console.log("Before AJAX Call Func")
+                     ajaxCall();
+                  });
+                });
+              },
+            });
+            var accessToken = qs('access_token');
+            if (accessToken != null && accessToken != '') {
+              $.post('/set_access_token', {
+                access_token: accessToken
+              }, function(data) {
+                $('#container').fadeOut('fast', function() {
+                 $('#end').show();
+                  $('#intro').hide();
+                  $('#app, #steps').fadeIn('slow');
+                });
+              });
+            }
+           
+            $('#link-btn').on('click', function(e) {
+              handler.open();
+            });
+
+    
+          })(jQuery);
+        
+        function qs(key) {
+            key = key.replace(/[*+?^$.\[\]{}()|\\\/]/g, "\\$&"); // escape RegEx meta chars
+            var match = location.search.match(new RegExp("[?&]"+key+"=([^&]+)(&|$)"));
+            return match && decodeURIComponent(match[1].replace(/\+/g, " "));
+        }
+          </script>
+        </body>
+        </html>
+</div>
